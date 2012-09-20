@@ -391,17 +391,17 @@ namespace ProjectX
             float SmXVal = VertsX[0];
             for (int i = 0; i < VertsX.Length; i++) if (VertsX[i] < SmXVal) SmXVal = VertsX[i];
             float BgXVal = VertsX[0];
-            for (int i = 0; i < VertsX.Length; i++) if (VertsX[i] > BgXVal) SmXVal = VertsX[i];
+            for (int i = 0; i < VertsX.Length; i++) if (VertsX[i] > BgXVal) BgXVal = VertsX[i];
 
             float SmYVal = VertsY[0];
             for (int i = 0; i < VertsY.Length; i++) if (VertsY[i] < SmYVal) SmYVal = VertsY[i];
             float BgYVal = VertsX[0];
-            for (int i = 0; i < VertsY.Length; i++) if (VertsY[i] > BgYVal) SmYVal = VertsY[i];
+            for (int i = 0; i < VertsY.Length; i++) if (VertsY[i] > BgYVal) BgYVal = VertsY[i];
 
             float SmZVal = VertsZ[0];
             for (int i = 0; i < VertsZ.Length; i++) if (VertsZ[i] < SmZVal) SmZVal = VertsZ[i];
             float BgZVal = VertsZ[0];
-            for (int i = 0; i < VertsZ.Length; i++) if (VertsZ[i] > BgZVal) SmZVal = VertsZ[i];
+            for (int i = 0; i < VertsZ.Length; i++) if (VertsZ[i] > BgZVal) BgZVal = VertsZ[i];
 
 
             float xRange = BgXVal - SmXVal;

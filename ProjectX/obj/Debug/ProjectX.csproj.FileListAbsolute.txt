@@ -1,0 +1,8 @@
+E:\ProjectX\ProjectX\bin\Debug\ProjectX.exe.config
+E:\ProjectX\ProjectX\bin\Debug\ProjectX.exe
+E:\ProjectX\ProjectX\bin\Debug\ProjectX.pdb
+E:\ProjectX\ProjectX\bin\Debug\NKH.MindSqualls.dll
+E:\ProjectX\ProjectX\bin\Debug\WinUsbWrapper.dll
+E:\ProjectX\ProjectX\obj\Debug\ProjectX.csprojResolveAssemblyReference.cache
+E:\ProjectX\ProjectX\obj\Debug\ProjectX.exe
+E:\ProjectX\ProjectX\obj\Debug\ProjectX.pdb

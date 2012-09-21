@@ -51,6 +51,9 @@ namespace ProjectX
         static float ZObjUnitPerSeg;
         static float Xpresc;
         static float Zpresc;
+        static float SmXVal;
+            static float SmYVal;
+            static float SmZVal;
 
         static void Main(string[] args)
         {
@@ -392,17 +395,17 @@ namespace ProjectX
         {
             Console.Write("Scaling Object to fit dimensions ... ");
 
-            float SmXVal = VertsX[0];
+            SmXVal = VertsX[0];
             for (int i = 0; i < VertsX.Length; i++) if (VertsX[i] < SmXVal) SmXVal = VertsX[i];
             float BgXVal = VertsX[0];
             for (int i = 0; i < VertsX.Length; i++) if (VertsX[i] > BgXVal) BgXVal = VertsX[i];
 
-            float SmYVal = VertsY[0];
+            SmYVal = VertsY[0];
             for (int i = 0; i < VertsY.Length; i++) if (VertsY[i] < SmYVal) SmYVal = VertsY[i];
             float BgYVal = VertsX[0];
             for (int i = 0; i < VertsY.Length; i++) if (VertsY[i] > BgYVal) BgYVal = VertsY[i];
 
-            float SmZVal = VertsZ[0];
+            SmZVal = VertsZ[0];
             for (int i = 0; i < VertsZ.Length; i++) if (VertsZ[i] < SmZVal) SmZVal = VertsZ[i];
             float BgZVal = VertsZ[0];
             for (int i = 0; i < VertsZ.Length; i++) if (VertsZ[i] > BgZVal) BgZVal = VertsZ[i];
@@ -438,10 +441,51 @@ namespace ProjectX
 
         static void Print()
         {
+            for (int i = 0; i < Math.Round(((float)ZrealRange / Zpresc) - 0.5F); i++) //Zeilenschleife
+            {
+                Console.WriteLine("Printing ... " + (float)i / Math.Round(((float)ZrealRange / Zpresc) - 0.5F) * 100F + "%");
 
+                for (int j = 0; j < Math.Round(((float)XrealRange / Xpresc) - 0.5F); i++) //Spaltenschleife
+                {
+                    float depth = GetDepth(i, j);
+                }
+            }
         }
 
-        
+        static float GetDepth(int x, int z)
+        {
+            Ray R;
+            R.P0.y = SmYVal - 1; R.P1.y = SmYVal;
+            R.P0.x = R.P1.x = x * XObjUnitPerSeg;
+            R.P0.z = R.P1.z = z * ZObjUnitPerSeg;
+
+            bool found = false; float depth = 0F;
+            for (int i = 0; i < FacesA.Length; i++)
+            {
+                Triangle T;
+                T.V0.x = VertsX[FacesA[i]]; T.V0.y = VertsY[FacesA[i]]; T.V0.z = VertsZ[FacesA[i]];
+                T.V1.x = VertsX[FacesB[i]]; T.V1.y = VertsY[FacesB[i]]; T.V1.z = VertsZ[FacesB[i]];
+                T.V2.x = VertsX[FacesC[i]]; T.V2.y = VertsY[FacesC[i]]; T.V2.z = VertsZ[FacesC[i]];
+
+                Vector ColPt; ColPt.x = ColPt.y = ColPt.z = 0F;
+
+                if (GeoMaths.intersect_RayTriangle(R, T, ref ColPt) == 1)
+                {
+                    if (found)
+                    {
+                        if (depth + SmYVal > ColPt.y) depth = ColPt.y - SmYVal;
+                    }
+                    else 
+                    {
+                        found = true;
+                        depth = ColPt.y - SmYVal;
+                    }
+                }
+            }
+
+            if (found) return depth;
+            else return YrealRange * YObjUnitPerDeg;
+        }
     }
 
     struct Vector
@@ -518,7 +562,7 @@ namespace ProjectX
         static float dot(Vector u, Vector v)  
         {return(u.x * v.x + u.y * v.y + u.z * v.z);}
 
-        static int intersect_RayTriangle(Ray R, Triangle T, ref Vector I)
+        public static int intersect_RayTriangle(Ray R, Triangle T, ref Vector I)
         {
             Vector u, v, n;             // triangle vectors
             Vector dir, w0, w;          // ray vectors

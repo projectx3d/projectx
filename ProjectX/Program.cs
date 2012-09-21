@@ -49,13 +49,16 @@ namespace ProjectX
         static float XSegmentDeg;
         static float ZSegmentDeg;
         static float XObjUnitPerSeg;
-        static float YObjUnitPerDeg;
         static float ZObjUnitPerSeg;
+        static float XObjUnitPerDeg;
+        static float YObjUnitPerDeg;
+        static float ZObjUnitPerDeg;
+
         static float Xpresc;
         static float Zpresc;
         static float SmXVal;
-            static float SmYVal;
-            static float SmZVal;
+        static float SmYVal;
+        static float SmZVal;
 
         static void Main(string[] args)
         {
@@ -105,7 +108,7 @@ namespace ProjectX
             }
             if (brick.IsConnected)
             {
-                PingNXT();
+                PingNXT(false);
             }
             else
             {
@@ -203,19 +206,22 @@ namespace ProjectX
             Console.WriteLine("\nUSB connection set up.");
         }
 
-        static void PingNXT()
+        static void PingNXT(bool battonly)
         {
             if (brick.IsConnected)
             {
-                brick.PlayTone(300, 400); System.Threading.Thread.Sleep(100);
-                brick.PlayTone(400, 400); System.Threading.Thread.Sleep(100);
-                brick.PlayTone(500, 400); System.Threading.Thread.Sleep(100);
-                brick.PlayTone(600, 400);
-                Console.WriteLine("NXT module '" + brick.Name + "' is successfully connected.");
-                NxtGetFirmwareVersionReply? reply = brick.CommLink.GetFirmwareVersion();
-                if (reply.HasValue)
+                if (!battonly)
                 {
-                    Console.WriteLine(" Firmware Version: " + reply.Value.firmwareVersion);
+                    brick.PlayTone(300, 400); System.Threading.Thread.Sleep(100);
+                    brick.PlayTone(400, 400); System.Threading.Thread.Sleep(100);
+                    brick.PlayTone(500, 400); System.Threading.Thread.Sleep(100);
+                    brick.PlayTone(600, 400);
+                    Console.WriteLine("NXT module '" + brick.Name + "' is successfully connected.");
+                    NxtGetFirmwareVersionReply? reply = brick.CommLink.GetFirmwareVersion();
+                    if (reply.HasValue)
+                    {
+                        Console.WriteLine(" Firmware Version: " + reply.Value.firmwareVersion);
+                    }
                 }
                 Console.WriteLine(" Battery Level: " + brick.BatteryLevel);
             }
@@ -384,7 +390,7 @@ namespace ProjectX
             Console.WriteLine("How many units do your want one printing step for Motor " + MotorXaxis + " to be? Float with decimal comma.");
             Xpresc = Convert.ToSingle(Console.ReadLine());
             XSegCount = (int)Math.Round(((float)XrealRange / Xpresc) - 0.5F);
-            XSegmentDeg = Math.Abs(XRange2 - XRange1) / ((float)XrealRange / Xpresc);
+            XSegmentDeg = Math.Abs(XRange2 - XRange1) / XSegCount;
             Console.WriteLine("\nThe X-Axis, having a total length of " + XrealRange + " units, is devided into " +  + XSegCount + 
                 " segments, each having a length of " + Xpresc + " units, requiring a rotation of " + XSegmentDeg +
                 " degrees for Motor " + MotorXaxis + ".");
@@ -392,7 +398,7 @@ namespace ProjectX
             Console.WriteLine("How many units do your want one printing step for Motor " + MotorZaxis + " to be? Float with decimal comma.");
             Zpresc = Convert.ToSingle(Console.ReadLine());
             ZSegCount = (int)Math.Round(((float)ZrealRange / Zpresc) - 0.5F);
-            ZSegmentDeg = Math.Abs(ZRange2 - ZRange1) / ((float)ZrealRange / Zpresc);
+            ZSegmentDeg = Math.Abs(ZRange2 - ZRange1) / ZSegCount;
             Console.WriteLine("\nThe Z-Axis, having a total length of " + ZrealRange + " units, is devided into " + ZSegCount +
                 " segments, each having a length of " + Zpresc + " units, requiring a rotation of " + ZSegmentDeg +
                 " degrees for Motor " + MotorZaxis + ".");
@@ -432,7 +438,9 @@ namespace ProjectX
             XObjUnitPerSeg = scale / Xpresc;    //so viele OBJ-Einheiten entsprechen einem Segment
             ZObjUnitPerSeg = scale / Zpresc;
 
+            XObjUnitPerDeg = (XrealRange * scale) / Math.Abs(XRange2 - XRange1);
             YObjUnitPerDeg = (YrealRange * scale) / Math.Abs(YRange2 - YRange1);
+            ZObjUnitPerDeg = (ZrealRange * scale) / Math.Abs(ZRange2 - ZRange1);
 
             Console.Write("DONE\n");
         }
@@ -448,20 +456,188 @@ namespace ProjectX
             Console.ReadKey();
         }
 
-        static void Print()
+/*        static void Print()
         {
-            for (int i = 0; i < XSegCount - 0.5F; i++) //Zeilenschleife
+            for (int i = 0; i < ZSegCount - 0.5F; i++) //Zeilenschleife
             {
-                Console.WriteLine("Printing ... " + (float)i / (float)XSegCount * 100F + "%");
+                Console.WriteLine("Printing ... " + Math.Round(((float)i / (float)ZSegCount * 100F)*10F)/10F + "%");
 
-                for (int j = 0; j < XSegCount; j++) //Spaltenschleife
+                if (i % 2 == 0)
                 {
-                    float depth = GetDepth(i, j);
+                    for (int j = 0; j < XSegCount; j++) //Spaltenschleife
+                    {
+                        float depth = GetDepth(i, j);
 
+                        //X- und Y-Motor parallel
+                        Xmotor.Poll(); Ymotor.Poll();
+                        int xDiff = (int)Math.Round((XSegmentDeg * (float)j) - (float)Xmotor.TachoCount.Value + (float)XRange1);
+                        int yDiff = (int)Math.Round(depth / YObjUnitPerDeg - (float)Ymotor.TachoCount.Value + (float)YRange1);
+                        if (Xinverted) xDiff = (int)Math.Round((float)XRange1 - (XSegmentDeg * (float)j) - (float)Xmotor.TachoCount.Value);
+                        if (Yinverted) yDiff = (int)Math.Round((float)YRange1 - depth / YObjUnitPerDeg - (float)Ymotor.TachoCount.Value);
+
+                        int xSpeed, ySpeed;
+                        if (Math.Abs(xDiff) > Math.Abs(yDiff))
+                            xSpeed = 30;
+                        else
+                            xSpeed = (int)Math.Round(((float)Math.Abs(xDiff) / (float)Math.Abs(yDiff)) * 30F);
+                        ySpeed = (int)Math.Round(((float)Math.Abs(yDiff) / (float)Math.Abs(xDiff)) * (float)xSpeed);
+
+                        if (xDiff < 0) { xSpeed = -xSpeed; xDiff = -xDiff; }
+                        if (yDiff < 0) { ySpeed = -ySpeed; yDiff = -yDiff; }
+
+                        Xmotor.Run(Convert.ToSByte(xSpeed), Convert.ToUInt32(xDiff));
+                        Ymotor.Run(Convert.ToSByte(ySpeed), Convert.ToUInt32(yDiff));
+                        WaitTillMotorStop();
+                        Xmotor.Brake(); Ymotor.Brake();
+                    }
                 }
+                else
+                {
+                    for (int j = XSegCount-1; j >= 0; j--) //Spaltenschleife
+                    {
+                        float depth = GetDepth(i, j);
+
+                        //X- und Y-Motor parallel
+                        Xmotor.Poll(); Ymotor.Poll();
+                        int xDiff = (int)Math.Round((XSegmentDeg * (float)j) - (float)Xmotor.TachoCount.Value + (float)XRange1);
+                        int yDiff = (int)Math.Round(depth / YObjUnitPerDeg - (float)Ymotor.TachoCount.Value + (float)YRange1);
+                        if (Xinverted) xDiff = (int)Math.Round((float)XRange1 - (XSegmentDeg * (float)j) - (float)Xmotor.TachoCount.Value);
+                        if (Yinverted) yDiff = (int)Math.Round((float)YRange1 - depth / YObjUnitPerDeg - (float)Ymotor.TachoCount.Value);
+
+                        int xSpeed, ySpeed;
+                        if (Math.Abs(xDiff) > Math.Abs(yDiff))
+                            xSpeed = 30;
+                        else
+                            xSpeed = (int)Math.Round(((float)Math.Abs(xDiff) / (float)Math.Abs(yDiff)) * 30F);
+                        ySpeed = (int)Math.Round(((float)Math.Abs(yDiff) / (float)Math.Abs(xDiff)) * (float)xSpeed);
+
+                        if (xDiff < 0) { xSpeed = -xSpeed; xDiff = -xDiff; }
+                        if (yDiff < 0) { ySpeed = -ySpeed; yDiff = -yDiff; }
+
+                        Xmotor.Run(Convert.ToSByte(xSpeed), Convert.ToUInt32(xDiff));
+                        Ymotor.Run(Convert.ToSByte(ySpeed), Convert.ToUInt32(yDiff));
+                        WaitTillMotorStop();
+                        Xmotor.Brake(); Ymotor.Brake();
+                    }
+                }
+
+                //Z- und Y-Motor
+                Ymotor.Poll(); Zmotor.Poll();
+                int yDiff2 = Ymotor.TachoCount.Value - YRange1;
+                int zDiff = (int)Math.Round(ZSegmentDeg*(float)i - (float)Ymotor.TachoCount.Value + (float)YRange1);
+                if (Yinverted) yDiff2 = YRange1 - Ymotor.TachoCount.Value;
+                if (Zinverted) zDiff = (int)Math.Round((float)YRange1 - ZSegmentDeg * (float)i - (float)Ymotor.TachoCount.Value);
+
+                if (yDiff2 < 0) Ymotor.Run(-30, Convert.ToUInt32(-yDiff2)); else Ymotor.Run(30, Convert.ToUInt32(yDiff2));
+                if (zDiff < 0) Zmotor.Run(-25, Convert.ToUInt32(-zDiff)); else Ymotor.Run(25, Convert.ToUInt32(zDiff));
+                WaitTillMotorStop();
             }
 
             Console.WriteLine("Printing Done.");
+        }*/
+
+        static void Print()
+        {
+            Vector NOCHANGE; NOCHANGE.x = NOCHANGE.y = NOCHANGE.z = 0;
+            for (int i = 0; i < ZSegCount - 0.5F; i++) //Zeilenschleife
+            {
+                Console.WriteLine("Printing ... " + Math.Round(((float)i / (float)ZSegCount * 100F) * 10F) / 10F + "%");
+                PingNXT(true);
+
+                if (i % 2 == 0)
+                {
+                    for (int j = 0; j < XSegCount; j++) //Spaltenschleife
+                    {
+                        float depth = GetDepth(i, j);
+
+                        //X- und Y-Motor parallel
+                        MoveDrill((float)j * XObjUnitPerSeg + SmXVal,
+                            SmYVal + depth,
+                            (float)i * ZObjUnitPerSeg + SmZVal);
+                        NOCHANGE.x = (float)j * XObjUnitPerSeg + SmXVal; 
+                    }
+                }
+                else
+                {
+                    for (int j = XSegCount - 1; j >= 0; j--) //Spaltenschleife
+                    {
+                        float depth = GetDepth(i, j);
+
+                        //X- und Y-Motor parallel
+                        MoveDrill((float)j * XObjUnitPerSeg + SmXVal,
+                            SmYVal + depth,
+                            (float)i * ZObjUnitPerSeg + SmZVal);
+                        NOCHANGE.x = (float)j * XObjUnitPerSeg + SmXVal; 
+                    }
+                }
+
+                //Z- und Y-Motor
+                MoveDrill(NOCHANGE.x,
+                            SmYVal,
+                            (float)i * ZObjUnitPerSeg + SmZVal);
+                
+            }
+
+            Console.WriteLine("Printing Done.");
+        }
+
+        static void MoveDrill(float x, float y, float z)
+        { 
+            //inputs are .OBJ coords
+            Xmotor.Poll(); Ymotor.Poll(); Zmotor.Poll();
+
+            Vector Tar; //tacho-units
+            if (!Xinverted)
+            { Tar.x = (x / XObjUnitPerDeg) + (float)XRange1; }
+            else
+            { Tar.x = (float)XRange1 - (x / XObjUnitPerDeg); }
+            if (!Yinverted)
+            { Tar.y = (y / YObjUnitPerDeg) + (float)YRange1; }
+            else
+            { Tar.y = (float)YRange1 - (y / YObjUnitPerDeg); }
+            if (!Zinverted)
+            { Tar.z = (z / ZObjUnitPerDeg) + (float)ZRange1; }
+            else
+            { Tar.z = (float)ZRange1 - (z / ZObjUnitPerDeg); }
+
+            Vector Diff;
+            Diff.x = Tar.x - (float)Xmotor.TachoCount.Value;
+            Diff.y = Tar.y - (float)Ymotor.TachoCount.Value;
+            Diff.z = Tar.z - (float)Zmotor.TachoCount.Value;
+
+            Vector Speed; Speed.x = 0; Speed.y = 0; Speed.z = 0;
+            if (Math.Abs(Diff.x) > Math.Abs(Diff.y) && Math.Abs(Diff.x) > Math.Abs(Diff.z))
+            {
+                Speed.x = 30F;
+                Speed.y = (Math.Abs(Diff.y) / Math.Abs(Diff.x)) * 30F;
+                Speed.z = (Math.Abs(Diff.z) / Math.Abs(Diff.x)) * 30F;
+            }
+            if (Math.Abs(Diff.y) > Math.Abs(Diff.x) && Math.Abs(Diff.y) > Math.Abs(Diff.z))
+            {
+                Speed.y = 30F;
+                Speed.x = (Math.Abs(Diff.x) / Math.Abs(Diff.y)) * 30F;
+                Speed.z = (Math.Abs(Diff.z) / Math.Abs(Diff.y)) * 30F;
+            }
+            if (Math.Abs(Diff.z) > Math.Abs(Diff.y) && Math.Abs(Diff.z) > Math.Abs(Diff.x))
+            {
+                Speed.z = 30F;
+                Speed.y = (Math.Abs(Diff.y) / Math.Abs(Diff.z)) * 30F;
+                Speed.x = (Math.Abs(Diff.x) / Math.Abs(Diff.z)) * 30F;
+            }
+
+            Speed.x += 0.5F; Speed.y += 0.5F; Speed.z += 0.5F;  //damit später aufgerundet wird
+
+            if (Diff.x < 0) { Speed.x = -Speed.x; Diff.x = Math.Abs(Diff.x); }
+            if (Diff.y < 0) { Speed.y = -Speed.y; Diff.y = Math.Abs(Diff.y); }
+            if (Diff.z < 0) { Speed.z = -Speed.z; Diff.z = Math.Abs(Diff.z); }
+
+            Xmotor.Run(Convert.ToSByte(Math.Round(Speed.x)), Convert.ToUInt32(Math.Round(Diff.x)));
+            Ymotor.Run(Convert.ToSByte(Math.Round(Speed.y)), Convert.ToUInt32(Math.Round(Diff.y)));
+            Zmotor.Run(Convert.ToSByte(Math.Round(Speed.z)), Convert.ToUInt32(Math.Round(Diff.z)));
+
+            WaitTillMotorStop();
+
+            Xmotor.Brake(); Ymotor.Brake(); Zmotor.Brake();
         }
 
         static float GetDepth(int x, int z)
@@ -497,6 +673,23 @@ namespace ProjectX
 
             if (found) return depth;
             else return YrealRange * YObjUnitPerDeg;
+        }
+
+        static void WaitTillMotorStop()
+        {
+            System.Threading.Thread.Sleep(2500);
+            /*NxtGetOutputStateReply? repa = brick.CommLink.GetOutputState(NxtMotorPort.PortA);
+            NxtGetOutputStateReply? repb = brick.CommLink.GetOutputState(NxtMotorPort.PortB);
+            NxtGetOutputStateReply? repc = brick.CommLink.GetOutputState(NxtMotorPort.PortC);
+            while (!repa.HasValue || repa.Value.runState != NxtMotorRunState.MOTOR_RUN_STATE_IDLE || 
+                !repb.HasValue || repb.Value.runState != NxtMotorRunState.MOTOR_RUN_STATE_IDLE ||
+                !repc.HasValue || repc.Value.runState != NxtMotorRunState.MOTOR_RUN_STATE_IDLE)
+            {
+                System.Threading.Thread.Sleep(50);
+                repa = brick.CommLink.GetOutputState(NxtMotorPort.PortA);
+                repb = brick.CommLink.GetOutputState(NxtMotorPort.PortB);
+                repc = brick.CommLink.GetOutputState(NxtMotorPort.PortC);
+            }*/
         }
     }
 

@@ -44,6 +44,8 @@ namespace ProjectX
         static int XrealRange;
         static int YrealRange;
         static int ZrealRange;
+        static int XSegCount;
+        static int ZSegCount;
         static float XSegmentDeg;
         static float ZSegmentDeg;
         static float XObjUnitPerSeg;
@@ -291,51 +293,57 @@ namespace ProjectX
             //X
             Console.WriteLine("Motor " + MotorXaxis + ", controlling the X-Axis, will now drive to one end of its movement range. Be prepared to press any Key when the end is reached. Press any Key to start.");
             Console.ReadKey();
-            Xmotor.Run(-10, 360000);
+            Xmotor.Run(-20, 0);
             Console.ReadKey();
             Xmotor.Brake();
+            Xmotor.Poll();
             XRange1 = Xmotor.TachoCount.Value;
             Console.WriteLine("\nDo you wish this to be the positive or the negative end? ('p'/'n')");
             if (Console.ReadKey().KeyChar == 'p') Xinverted = true;
             Console.WriteLine("Motor " + MotorXaxis + " will now move to the opposite and. Press any key if you're ready.");
             Console.ReadKey();
-            Xmotor.Run(10, 36000);
+            Xmotor.Run(20, 0);
             Console.ReadKey();
             Xmotor.Brake();
+            Xmotor.Poll();
             XRange2 = Xmotor.TachoCount.Value;
 
 
             //Y
             Console.WriteLine("\nMotor " + MotorYaxis + ", controlling the Y-Axis, will now drive to one end of its movement range. Be prepared to press any Key when the end is reached. Press any Key to start.");
             Console.ReadKey();
-            Ymotor.Run(-10, 360000);
+            Ymotor.Run(-20, 0);
             Console.ReadKey();
             Ymotor.Brake();
+            Ymotor.Poll();
             YRange1 = Ymotor.TachoCount.Value;
             Console.WriteLine("\nDo you wish this to be the positive or the negative end? ('p'/'n')");
             if (Console.ReadKey().KeyChar == 'p') Yinverted = true;
             Console.WriteLine("Motor " + MotorYaxis + " will now move to the opposite and. Press any key if you're ready.");
             Console.ReadKey();
-            Ymotor.Run(10, 36000);
+            Ymotor.Run(20, 0);
             Console.ReadKey();
             Ymotor.Brake();
+            Ymotor.Poll();
             YRange2 = Ymotor.TachoCount.Value;
 
 
             //Z
             Console.WriteLine("\nMotor " + MotorZaxis + ", controlling the Z-Axis, will now drive to one end of its movement range. Be prepared to press any Key when the end is reached. Press any Key to start.");
             Console.ReadKey();
-            Zmotor.Run(-10, 360000);
+            Zmotor.Run(-20, 0);
             Console.ReadKey();
             Zmotor.Brake();
+            Zmotor.Poll();
             ZRange1 = Zmotor.TachoCount.Value;
             Console.WriteLine("\nDo you wish this to be the positive or the negative end? ('p'/'n')");
             if (Console.ReadKey().KeyChar == 'p') Zinverted = true;
             Console.WriteLine("Motor " + MotorZaxis + " will now move to the opposite and. Press any key if you're ready.");
             Console.ReadKey();
-            Zmotor.Run(10, 36000);
+            Zmotor.Run(20, 0);
             Console.ReadKey();
             Zmotor.Brake();
+            Zmotor.Poll();
             ZRange2 = Zmotor.TachoCount.Value;
 
             if (Xinverted)
@@ -375,20 +383,21 @@ namespace ProjectX
             Console.WriteLine("\nYou now have to define the precision of your Print.");
             Console.WriteLine("How many units do your want one printing step for Motor " + MotorXaxis + " to be? Float with decimal comma.");
             Xpresc = Convert.ToSingle(Console.ReadLine());
-            Console.WriteLine("\nThe X-Axis, having a total length of " + XrealRange + " units, is devided into " + Math.Round(((float)XrealRange / Xpresc) - 0.5F) +
-                " segments, each having a length of " + Xpresc + " units, requiring a rotation of " + Math.Abs(XRange2 - XRange1) +
+            XSegCount = (int)Math.Round(((float)XrealRange / Xpresc) - 0.5F);
+            XSegmentDeg = Math.Abs(XRange2 - XRange1) / ((float)XrealRange / Xpresc);
+            Console.WriteLine("\nThe X-Axis, having a total length of " + XrealRange + " units, is devided into " +  + XSegCount + 
+                " segments, each having a length of " + Xpresc + " units, requiring a rotation of " + XSegmentDeg +
                 " degrees for Motor " + MotorXaxis + ".");
 
             Console.WriteLine("How many units do your want one printing step for Motor " + MotorZaxis + " to be? Float with decimal comma.");
             Zpresc = Convert.ToSingle(Console.ReadLine());
-            Console.WriteLine("\nThe Z-Axis, having a total length of " + ZrealRange + " units, is devided into " + Math.Round(((float)ZrealRange / Zpresc) - 0.5F) +
-                " segments, each having a length of " + Zpresc + " units, requiring a rotation of " + Math.Abs(ZRange2 - ZRange1) +
+            ZSegCount = (int)Math.Round(((float)ZrealRange / Zpresc) - 0.5F);
+            ZSegmentDeg = Math.Abs(ZRange2 - ZRange1) / ((float)ZrealRange / Zpresc);
+            Console.WriteLine("\nThe Z-Axis, having a total length of " + ZrealRange + " units, is devided into " + ZSegCount +
+                " segments, each having a length of " + Zpresc + " units, requiring a rotation of " + ZSegmentDeg +
                 " degrees for Motor " + MotorZaxis + ".");
 
             Console.WriteLine("\nThe Y-Axis will be as precise as possible, there's no resolution needed.");
-
-            XSegmentDeg = Math.Abs(XRange2 - XRange1);
-            ZSegmentDeg = Math.Abs(ZRange2 - ZRange1);
         }
 
         static void FindScale()
@@ -441,15 +450,18 @@ namespace ProjectX
 
         static void Print()
         {
-            for (int i = 0; i < Math.Round(((float)ZrealRange / Zpresc) - 0.5F); i++) //Zeilenschleife
+            for (int i = 0; i < XSegCount - 0.5F; i++) //Zeilenschleife
             {
-                Console.WriteLine("Printing ... " + (float)i / Math.Round(((float)ZrealRange / Zpresc) - 0.5F) * 100F + "%");
+                Console.WriteLine("Printing ... " + (float)i / (float)XSegCount * 100F + "%");
 
-                for (int j = 0; j < Math.Round(((float)XrealRange / Xpresc) - 0.5F); i++) //Spaltenschleife
+                for (int j = 0; j < XSegCount; j++) //Spaltenschleife
                 {
                     float depth = GetDepth(i, j);
+
                 }
             }
+
+            Console.WriteLine("Printing Done.");
         }
 
         static float GetDepth(int x, int z)
@@ -463,9 +475,9 @@ namespace ProjectX
             for (int i = 0; i < FacesA.Length; i++)
             {
                 Triangle T;
-                T.V0.x = VertsX[FacesA[i]]; T.V0.y = VertsY[FacesA[i]]; T.V0.z = VertsZ[FacesA[i]];
-                T.V1.x = VertsX[FacesB[i]]; T.V1.y = VertsY[FacesB[i]]; T.V1.z = VertsZ[FacesB[i]];
-                T.V2.x = VertsX[FacesC[i]]; T.V2.y = VertsY[FacesC[i]]; T.V2.z = VertsZ[FacesC[i]];
+                T.V0.x = VertsX[FacesA[i]-1]; T.V0.y = VertsY[FacesA[i]-1]; T.V0.z = VertsZ[FacesA[i]-1];
+                T.V1.x = VertsX[FacesB[i]-1]; T.V1.y = VertsY[FacesB[i]-1]; T.V1.z = VertsZ[FacesB[i]-1];
+                T.V2.x = VertsX[FacesC[i]-1]; T.V2.y = VertsY[FacesC[i]-1]; T.V2.z = VertsZ[FacesC[i]-1];
 
                 Vector ColPt; ColPt.x = ColPt.y = ColPt.z = 0F;
 
@@ -532,6 +544,20 @@ namespace ProjectX
         {
             if(a.x == b.x && a.y == b.y && a.z == b.z) return true; else return false;
         }
+
+        public static bool operator !=(Vector a, Vector b)
+        {
+            if (a.x == b.x && a.y == b.y && a.z == b.z) return false; else return true;
+        }
+
+        public override bool Equals(object o)
+        {
+            if (!(o is Vector))
+                return false;
+
+            Vector a = (Vector)o;
+            if (a.x == x && a.y == y && a.z == z) return true; else return false;
+        }
     }
 
     struct Ray
@@ -547,6 +573,9 @@ namespace ProjectX
 
     class GeoMaths
     {
+        ////////////////////////////////////////////////////////////////////////////
+        //(C) http://www.softsurfer.com/Archive/algorithm_0105/algorithm_0105.htm //
+        ////////////////////////////////////////////////////////////////////////////
 
         // intersect_RayTriangle(): intersect a ray with a 3D triangle
         //    Input:  a ray R, and a triangle T

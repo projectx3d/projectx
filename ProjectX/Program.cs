@@ -430,17 +430,17 @@ namespace ProjectX
             float yRange = BgYVal - SmYVal;
             float zRange = BgZVal - SmZVal;
 
-            scale = XrealRange / xRange;
-            if (YrealRange / yRange < scale) scale = YrealRange / yRange;
-            if (ZrealRange / zRange < scale) scale = ZrealRange / zRange;
+            scale = (float)XrealRange / xRange;
+            if (YrealRange / yRange < scale) scale = (float)YrealRange / yRange;
+            if (ZrealRange / zRange < scale) scale = (float)ZrealRange / zRange;
             //Eine .obj Einheit = Scale * Unit
 
             XObjUnitPerSeg = scale / Xpresc;    //so viele OBJ-Einheiten entsprechen einem Segment
             ZObjUnitPerSeg = scale / Zpresc;
 
-            XObjUnitPerDeg = (XrealRange * scale) / Math.Abs(XRange2 - XRange1);
-            YObjUnitPerDeg = (YrealRange * scale) / Math.Abs(YRange2 - YRange1);
-            ZObjUnitPerDeg = (ZrealRange * scale) / Math.Abs(ZRange2 - ZRange1);
+            XObjUnitPerDeg = (XrealRange * scale) / Math.Abs((float)(XRange2 - XRange1));
+            YObjUnitPerDeg = (YrealRange * scale) / Math.Abs((float)(YRange2 - YRange1));
+            ZObjUnitPerDeg = (ZrealRange * scale) / Math.Abs((float)(ZRange2 - ZRange1));
 
             Console.Write("DONE\n");
         }
@@ -448,9 +448,10 @@ namespace ProjectX
         static void PreparePrint()
         {
             Console.WriteLine("\n\nCongratulations, all Configuration is done. \nThe Motors now move towards their Origin.\nWhen in position, place the raw material block precisely on the Printing Area and turn the drill on.\nWhen ready, press any Key.");
-            if(!Xinverted) Xmotor.Run(-30, ((uint)Math.Abs(XRange2-XRange1)));
+            /*if(!Xinverted) Xmotor.Run(-30, ((uint)Math.Abs(XRange2-XRange1)));
             if (!Yinverted) Ymotor.Run(-30, ((uint)Math.Abs(YRange2 - YRange1)));
-            if (!Zinverted) Zmotor.Run(-30, ((uint)Math.Abs(ZRange2 - ZRange1)));
+            if (!Zinverted) Zmotor.Run(-30, ((uint)Math.Abs(ZRange2 - ZRange1)));*/
+            MoveDrill(SmXVal, SmYVal, SmZVal);
             Console.ReadKey();
             Console.WriteLine("\nNext Keypress is point of no return. If religious, pray now.");
             Console.ReadKey();

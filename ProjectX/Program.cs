@@ -7,6 +7,7 @@ using System.Threading.Tasks;
 using System.Diagnostics;
 using System.IO;
 using NKH.MindSqualls;
+using NKH.MindSqualls.MotorControl;
 
 namespace ProjectX
 {
@@ -14,10 +15,10 @@ namespace ProjectX
     class Program
     {
 
-        private static NxtBrick brick;
-        static NxtMotor Xmotor;
-        static NxtMotor Ymotor;
-        static NxtMotor Zmotor;
+        private static McNxtBrick brick;
+        static McNxtMotor Xmotor;
+        static McNxtMotor Ymotor;
+        static McNxtMotor Zmotor;
 
         static float[] VertsX;
         static float[] VertsY;
@@ -32,6 +33,9 @@ namespace ProjectX
         static char MotorXaxis;
         static char MotorYaxis;
         static char MotorZaxis;
+        static NxtMotorPort XmotorPort;
+        static NxtMotorPort YmotorPort;
+        static NxtMotorPort ZmotorPort;
         static bool Xinverted = false;
         static bool Yinverted = false;
         static bool Zinverted = false;
@@ -115,6 +119,8 @@ namespace ProjectX
                 Console.WriteLine("Connection Failed.");
             }
 
+            brick.CommLink.StartProgram("MotorControl22.rxe");
+
             //Einlesen Der .obj-Datei
             Console.WriteLine("\n=== === ===\nMODEL SELECTION\n=== === ===");
             Console.WriteLine("\n\nPlease give the Path of the 3D model you are willing to print. OBJ Format is supported.");
@@ -196,13 +202,13 @@ namespace ProjectX
         {
             Console.WriteLine("\n\nEnter your Bluetooth COM-Port (Default: 40)");
             byte comport = Convert.ToByte(Console.ReadLine());
-            brick = new NxtBrick(NxtCommLinkType.Bluetooth, comport);
+            brick = new McNxtBrick(NxtCommLinkType.Bluetooth, comport);
             Console.WriteLine("\nBluetooth connection set up at port " + comport + ".");
         }
 
         static void SetupUSBConnection()
         {
-            brick = new NxtBrick(NxtCommLinkType.USB, 0);
+            brick = new McNxtBrick(NxtCommLinkType.USB, 0);
             Console.WriteLine("\nUSB connection set up.");
         }
 
@@ -240,20 +246,23 @@ namespace ProjectX
             Console.WriteLine("\nEnter ('A'/'B'/'C') the Motor controlling Z-Axis (up-down) movement:");
             MotorZaxis = Console.ReadKey().KeyChar;
 
-            Xmotor = new NxtMotor();
-            Ymotor = new NxtMotor();
-            Zmotor = new NxtMotor();
+            Xmotor = new McNxtMotor();
+            Ymotor = new McNxtMotor();
+            Zmotor = new McNxtMotor();
 
             switch (MotorXaxis)
             {
                 case 'a':
                     brick.MotorA = Xmotor;
+                    XmotorPort = NxtMotorPort.PortA;
                     break;
                 case 'b':
                     brick.MotorB = Xmotor;
+                    XmotorPort = NxtMotorPort.PortB;
                     break;
                 case 'c':
                     brick.MotorC = Xmotor;
+                    XmotorPort = NxtMotorPort.PortC;
                     break;
             }
 
@@ -261,12 +270,15 @@ namespace ProjectX
             {
                 case 'a':
                     brick.MotorA = Ymotor;
+                    YmotorPort = NxtMotorPort.PortA;
                     break;
                 case 'b':
                     brick.MotorB = Ymotor;
+                    YmotorPort = NxtMotorPort.PortB;
                     break;
                 case 'c':
                     brick.MotorC = Ymotor;
+                    YmotorPort = NxtMotorPort.PortC;
                     break;
             }
 
@@ -274,12 +286,15 @@ namespace ProjectX
             {
                 case 'a':
                     brick.MotorA = Zmotor;
+                    ZmotorPort = NxtMotorPort.PortA;
                     break;
                 case 'b':
                     brick.MotorB = Zmotor;
+                    ZmotorPort = NxtMotorPort.PortB;
                     break;
                 case 'c':
                     brick.MotorC = Zmotor;
+                   ZmotorPort = NxtMotorPort.PortC;
                     break;
             }
         }
@@ -301,7 +316,7 @@ namespace ProjectX
             Console.ReadKey();
             Xmotor.Run(-20, 0);
             Console.ReadKey();
-            Xmotor.Brake();
+            Xmotor.Brake(); System.Threading.Thread.Sleep(20); 
             Xmotor.Poll();
             XRange1 = Xmotor.TachoCount.Value;
             Console.WriteLine("\nDo you wish this to be the positive or the negative end? ('p'/'n')");
@@ -310,7 +325,7 @@ namespace ProjectX
             Console.ReadKey();
             Xmotor.Run(20, 0);
             Console.ReadKey();
-            Xmotor.Brake();
+            Xmotor.Brake(); System.Threading.Thread.Sleep(20); 
             Xmotor.Poll();
             XRange2 = Xmotor.TachoCount.Value;
 
@@ -320,7 +335,7 @@ namespace ProjectX
             Console.ReadKey();
             Ymotor.Run(-20, 0);
             Console.ReadKey();
-            Ymotor.Brake();
+            Ymotor.Brake(); System.Threading.Thread.Sleep(20); 
             Ymotor.Poll();
             YRange1 = Ymotor.TachoCount.Value;
             Console.WriteLine("\nDo you wish this to be the positive or the negative end? ('p'/'n')");
@@ -329,7 +344,7 @@ namespace ProjectX
             Console.ReadKey();
             Ymotor.Run(20, 0);
             Console.ReadKey();
-            Ymotor.Brake();
+            Ymotor.Brake(); System.Threading.Thread.Sleep(20); 
             Ymotor.Poll();
             YRange2 = Ymotor.TachoCount.Value;
 
@@ -348,7 +363,7 @@ namespace ProjectX
             Console.ReadKey();
             Zmotor.Run(20, 0);
             Console.ReadKey();
-            Zmotor.Brake();
+            Zmotor.Brake(); System.Threading.Thread.Sleep(20); 
             Zmotor.Poll();
             ZRange2 = Zmotor.TachoCount.Value;
 
@@ -543,6 +558,7 @@ namespace ProjectX
             for (int i = 0; i < ZSegCount - 0.5F; i++) //Zeilenschleife
             {
                 Console.WriteLine("Printing ... " + Math.Round(((float)i / (float)ZSegCount * 100F) * 10F) / 10F + "%");
+                System.Threading.Thread.Sleep(20); 
                 PingNXT(true);
 
                 if (i % 2 == 0)
@@ -585,6 +601,7 @@ namespace ProjectX
         static void MoveDrill(float x, float y, float z)
         { 
             //inputs are .OBJ coords
+            System.Threading.Thread.Sleep(20); 
             Xmotor.Poll(); Ymotor.Poll(); Zmotor.Poll();
 
             Vector Tar; //tacho-units
@@ -602,6 +619,7 @@ namespace ProjectX
             { Tar.z = (float)ZRange1 - (z / ZObjUnitPerDeg); }
 
             Vector Diff;
+            System.Threading.Thread.Sleep(20); 
             Diff.x = Tar.x - (float)Xmotor.TachoCount.Value;
             Diff.y = Tar.y - (float)Ymotor.TachoCount.Value;
             Diff.z = Tar.z - (float)Zmotor.TachoCount.Value;
@@ -627,17 +645,45 @@ namespace ProjectX
             }
 
             Speed.x += 0.5F; Speed.y += 0.5F; Speed.z += 0.5F;  //damit später aufgerundet wird
+            
+            //LOG
+            Debug.Print("MOVING DRILL\n Target OBJ Position:\n  x: " +
+                x + "\n  y: " + y + "\n  z: " + z +
+                "\n Target Degree Position:\n  x: " +
+                Tar.x + "\n  y: " + Tar.y + "\n  z: " + Tar.z +
+                "\n Current Degree Position:\n  x: " +
+                Xmotor.TachoCount.Value + "\n  y: " + Ymotor.TachoCount.Value + "\n  z: " + Zmotor.TachoCount.Value + 
+                 "\n Degree Difference:\n  x: " +
+                Diff.x + "\n  y: " + Diff.y + "\n  z: " + Diff.z);
+
 
             if (Diff.x < 0) { Speed.x = -Speed.x; Diff.x = Math.Abs(Diff.x); }
             if (Diff.y < 0) { Speed.y = -Speed.y; Diff.y = Math.Abs(Diff.y); }
             if (Diff.z < 0) { Speed.z = -Speed.z; Diff.z = Math.Abs(Diff.z); }
 
-            Xmotor.Run(Convert.ToSByte(Math.Round(Speed.x)), Convert.ToUInt32(Math.Round(Diff.x)));
+            System.Threading.Thread.Sleep(20); 
+            /*Xmotor.Run(Convert.ToSByte(Math.Round(Speed.x)), Convert.ToUInt32(Math.Round(Diff.x)));
             Ymotor.Run(Convert.ToSByte(Math.Round(Speed.y)), Convert.ToUInt32(Math.Round(Diff.y)));
             Zmotor.Run(Convert.ToSByte(Math.Round(Speed.z)), Convert.ToUInt32(Math.Round(Diff.z)));
+            */
+
+            /*Xmotor.Run(Convert.ToSByte(Math.Round(Speed.x)), 90);
+            Ymotor.Run(Convert.ToSByte(Math.Round(Speed.y)), 100);
+            Zmotor.Run(Convert.ToSByte(Math.Round(Speed.z)), 20);*/
+
+            brick.CommLink.SetOutputState(XmotorPort, Convert.ToSByte(Math.Round(Speed.x)), 
+                NxtMotorMode.MOTORON, NxtMotorRegulationMode.REGULATION_MODE_IDLE, 0, 
+                NxtMotorRunState.MOTOR_RUN_STATE_RUNNING, Convert.ToUInt32(Math.Round(Diff.x)));
+            brick.CommLink.SetOutputState(YmotorPort, Convert.ToSByte(Math.Round(Speed.y)),
+                NxtMotorMode.MOTORON, NxtMotorRegulationMode.REGULATION_MODE_IDLE, 0,
+                NxtMotorRunState.MOTOR_RUN_STATE_RUNNING, Convert.ToUInt32(Math.Round(Diff.y)));
+            brick.CommLink.SetOutputState(ZmotorPort, Convert.ToSByte(Math.Round(Speed.z)),
+                NxtMotorMode.MOTORON, NxtMotorRegulationMode.REGULATION_MODE_IDLE, 0,
+                NxtMotorRunState.MOTOR_RUN_STATE_RUNNING, Convert.ToUInt32(Math.Round(Diff.z)));
 
             WaitTillMotorStop();
 
+            System.Threading.Thread.Sleep(20); 
             Xmotor.Brake(); Ymotor.Brake(); Zmotor.Brake();
         }
 
@@ -679,18 +725,19 @@ namespace ProjectX
         static void WaitTillMotorStop()
         {
             System.Threading.Thread.Sleep(2500);
-            /*NxtGetOutputStateReply? repa = brick.CommLink.GetOutputState(NxtMotorPort.PortA);
+           /* NxtGetOutputStateReply? repa = brick.CommLink.GetOutputState(NxtMotorPort.PortA);
             NxtGetOutputStateReply? repb = brick.CommLink.GetOutputState(NxtMotorPort.PortB);
             NxtGetOutputStateReply? repc = brick.CommLink.GetOutputState(NxtMotorPort.PortC);
             while (!repa.HasValue || repa.Value.runState != NxtMotorRunState.MOTOR_RUN_STATE_IDLE || 
                 !repb.HasValue || repb.Value.runState != NxtMotorRunState.MOTOR_RUN_STATE_IDLE ||
                 !repc.HasValue || repc.Value.runState != NxtMotorRunState.MOTOR_RUN_STATE_IDLE)
             {
-                System.Threading.Thread.Sleep(50);
+                System.Threading.Thread.Sleep(100);
                 repa = brick.CommLink.GetOutputState(NxtMotorPort.PortA);
                 repb = brick.CommLink.GetOutputState(NxtMotorPort.PortB);
                 repc = brick.CommLink.GetOutputState(NxtMotorPort.PortC);
             }*/
+            
         }
     }
 

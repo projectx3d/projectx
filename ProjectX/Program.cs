@@ -445,19 +445,43 @@ namespace ProjectX
             float yRange = BgYVal - SmYVal;
             float zRange = BgZVal - SmZVal;
 
-            scale = (float)XrealRange / xRange;
-            if (YrealRange / yRange < scale) scale = (float)YrealRange / yRange;
-            if (ZrealRange / zRange < scale) scale = (float)ZrealRange / zRange;
+            scale = xRange / (float)XrealRange;
+            if (YrealRange / yRange < scale) scale = yRange / (float)YrealRange;
+            if (ZrealRange / zRange < scale) scale = zRange / (float)ZrealRange;
             //Eine .obj Einheit = Scale * Unit
 
-            XObjUnitPerSeg = scale / Xpresc;    //so viele OBJ-Einheiten entsprechen einem Segment
-            ZObjUnitPerSeg = scale / Zpresc;
+            XObjUnitPerSeg = scale * Xpresc;    //so viele OBJ-Einheiten entsprechen einem Segment
+            ZObjUnitPerSeg = scale * Zpresc;
 
-            XObjUnitPerDeg = (XrealRange * scale) / Math.Abs((float)(XRange2 - XRange1));
-            YObjUnitPerDeg = (YrealRange * scale) / Math.Abs((float)(YRange2 - YRange1));
-            ZObjUnitPerDeg = (ZrealRange * scale) / Math.Abs((float)(ZRange2 - ZRange1));
+            XObjUnitPerDeg = (xRange) / Math.Abs((float)(XRange2 - XRange1));
+            YObjUnitPerDeg = (yRange) / Math.Abs((float)(YRange2 - YRange1));
+            ZObjUnitPerDeg = (zRange) / Math.Abs((float)(ZRange2 - ZRange1));
 
             Console.Write("DONE\n");
+
+            Console.WriteLine("Do you wish to see a Raycast ASCII-Heightmap of the printed surface? ('y'/'n')");
+            if (Console.ReadKey().KeyChar == 'y')
+            {
+                Console.WriteLine();
+
+                for (int i = 0; i < ZSegCount - 0.5F; i++) //Zeilenschleife
+                {
+                    for (int j = 0; j < XSegCount; j++) //Spaltenschleife
+                    {
+                        Console.Write(ToChar(GetDepth(i, j)));
+                    }
+                }
+                Console.Write("\n");
+            }
+        }
+
+        static char ToChar(float depth)
+        {
+            float maxdep = Math.Abs(YRange2 - YRange1) * XObjUnitPerDeg;
+            char[] heights = new char[] { ' ', '.', ',', '*', '+', 'o', '$', '&', '%', '#'};
+
+            int idx = (int) Math.Round(depth / (maxdep / 10F) - 0.5F);
+            return heights[idx];
         }
 
         static void PreparePrint()
@@ -604,6 +628,8 @@ namespace ProjectX
             System.Threading.Thread.Sleep(20); 
             Xmotor.Poll(); Ymotor.Poll(); Zmotor.Poll();
 
+            x -= SmXVal; y -= SmXVal; z -= SmXVal;
+
             Vector Tar; //tacho-units
             if (!Xinverted)
             { Tar.x = (x / XObjUnitPerDeg) + (float)XRange1; }
@@ -647,14 +673,14 @@ namespace ProjectX
             Speed.x += 0.5F; Speed.y += 0.5F; Speed.z += 0.5F;  //damit später aufgerundet wird
             
             //LOG
-            Debug.Print("MOVING DRILL\n Target OBJ Position:\n  x: " +
+           /* Debug.Print("MOVING DRILL\n Target OBJ Position:\n  x: " +
                 x + "\n  y: " + y + "\n  z: " + z +
                 "\n Target Degree Position:\n  x: " +
                 Tar.x + "\n  y: " + Tar.y + "\n  z: " + Tar.z +
                 "\n Current Degree Position:\n  x: " +
                 Xmotor.TachoCount.Value + "\n  y: " + Ymotor.TachoCount.Value + "\n  z: " + Zmotor.TachoCount.Value + 
                  "\n Degree Difference:\n  x: " +
-                Diff.x + "\n  y: " + Diff.y + "\n  z: " + Diff.z);
+                Diff.x + "\n  y: " + Diff.y + "\n  z: " + Diff.z);*/
 
 
             if (Diff.x < 0) { Speed.x = -Speed.x; Diff.x = Math.Abs(Diff.x); }
@@ -662,28 +688,12 @@ namespace ProjectX
             if (Diff.z < 0) { Speed.z = -Speed.z; Diff.z = Math.Abs(Diff.z); }
 
             System.Threading.Thread.Sleep(20); 
-            /*Xmotor.Run(Convert.ToSByte(Math.Round(Speed.x)), Convert.ToUInt32(Math.Round(Diff.x)));
-            Ymotor.Run(Convert.ToSByte(Math.Round(Speed.y)), Convert.ToUInt32(Math.Round(Diff.y)));
+            Xmotor.Run(Convert.ToSByte(Math.Round(Speed.x)), Convert.ToUInt32(Math.Round(Diff.x)));
+            Ymotor.Run(Convert.ToSByte(Math.Round(Speed.y)), Convert.ToUInt32(Math.Round(Diff.y))); ////////////////// FICKEN MIT SAHNE WARUM GEHT DER DRECKSSCHEISS NICH
             Zmotor.Run(Convert.ToSByte(Math.Round(Speed.z)), Convert.ToUInt32(Math.Round(Diff.z)));
-            */
-
-            /*Xmotor.Run(Convert.ToSByte(Math.Round(Speed.x)), 90);
-            Ymotor.Run(Convert.ToSByte(Math.Round(Speed.y)), 100);
-            Zmotor.Run(Convert.ToSByte(Math.Round(Speed.z)), 20);*/
-
-            brick.CommLink.SetOutputState(XmotorPort, Convert.ToSByte(Math.Round(Speed.x)), 
-                NxtMotorMode.MOTORON, NxtMotorRegulationMode.REGULATION_MODE_IDLE, 0, 
-                NxtMotorRunState.MOTOR_RUN_STATE_RUNNING, Convert.ToUInt32(Math.Round(Diff.x)));
-            brick.CommLink.SetOutputState(YmotorPort, Convert.ToSByte(Math.Round(Speed.y)),
-                NxtMotorMode.MOTORON, NxtMotorRegulationMode.REGULATION_MODE_IDLE, 0,
-                NxtMotorRunState.MOTOR_RUN_STATE_RUNNING, Convert.ToUInt32(Math.Round(Diff.y)));
-            brick.CommLink.SetOutputState(ZmotorPort, Convert.ToSByte(Math.Round(Speed.z)),
-                NxtMotorMode.MOTORON, NxtMotorRegulationMode.REGULATION_MODE_IDLE, 0,
-                NxtMotorRunState.MOTOR_RUN_STATE_RUNNING, Convert.ToUInt32(Math.Round(Diff.z)));
 
             WaitTillMotorStop();
 
-            System.Threading.Thread.Sleep(20); 
             Xmotor.Brake(); Ymotor.Brake(); Zmotor.Brake();
         }
 
@@ -691,8 +701,8 @@ namespace ProjectX
         {
             Ray R;
             R.P0.y = SmYVal - 1; R.P1.y = SmYVal;
-            R.P0.x = R.P1.x = x * XObjUnitPerSeg;
-            R.P0.z = R.P1.z = z * ZObjUnitPerSeg;
+            R.P0.x = R.P1.x = x * XObjUnitPerSeg + SmXVal;
+            R.P0.z = R.P1.z = z * ZObjUnitPerSeg + SmZVal;
 
             bool found = false; float depth = 0F;
             for (int i = 0; i < FacesA.Length; i++)
@@ -724,7 +734,9 @@ namespace ProjectX
 
         static void WaitTillMotorStop()
         {
-            System.Threading.Thread.Sleep(2500);
+            //System.Threading.Thread.Sleep(2500);
+            Console.WriteLine("Press Key when motors stopped");
+            Console.ReadKey();
            /* NxtGetOutputStateReply? repa = brick.CommLink.GetOutputState(NxtMotorPort.PortA);
             NxtGetOutputStateReply? repb = brick.CommLink.GetOutputState(NxtMotorPort.PortB);
             NxtGetOutputStateReply? repc = brick.CommLink.GetOutputState(NxtMotorPort.PortC);

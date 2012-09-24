@@ -72,7 +72,6 @@ namespace ProjectX
             FacesA = new int[0];
             FacesB = new int[0];
             FacesC = new int[0];
-           
 
             Console.WriteLine("\n=== === ===\nWELCOME\n=== === ===");
             Console.WriteLine("Welcome to ProjectX 3D Printing Software!");
@@ -150,6 +149,11 @@ namespace ProjectX
 
             Console.ReadKey();
             brick.Disconnect();
+
+            //Credits
+            Console.WriteLine("And .... Did it work ?? ('y'/'n')");
+            if (Console.ReadKey().KeyChar == 'y')
+            { Credits(); Console.ReadKey(); }
         }
 
         static void DecodeObjFile(StreamReader objReader)
@@ -752,6 +756,17 @@ namespace ProjectX
                 repc = brick.CommLink.GetOutputState(NxtMotorPort.PortC);
             }*/
             
+        }
+
+        static void Credits()
+        {
+            Console.WindowHeight = 60;
+            StreamReader creditFile = new StreamReader("../../credits.txt");
+            while (!creditFile.EndOfStream)
+            {
+                Console.WriteLine(creditFile.ReadLine());
+                System.Threading.Thread.Sleep(50);
+            }
         }
     }
 

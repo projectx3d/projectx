@@ -481,6 +481,8 @@ namespace ProjectX
             char[] heights = new char[] { ' ', '.', ',', '*', '+', 'o', '$', '&', '%', '#'};
 
             int idx = (int) Math.Round(depth / (maxdep / 10F) - 0.5F);
+            if (idx > 9) idx = 9; else if (idx < 0) idx = 0;
+
             return heights[idx];
         }
 
